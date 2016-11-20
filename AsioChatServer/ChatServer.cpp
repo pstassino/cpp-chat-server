@@ -10,7 +10,7 @@
 
 using boost::asio::ip::tcp;
 
-typedef std::deque<chat_message> chat_message_queue;
+typedef std::deque<Message> chat_message_queue;
 
 //----------------------------------------------------------------------
 
@@ -18,7 +18,7 @@ class chat_participant
 {
 public:
 	virtual ~chat_participant() {}
-	virtual void deliver(const chat_message& msg) = 0;
+	virtual void deliver(const Message& msg) = 0;
 };
 
 //----------------------------------------------------------------------
@@ -40,7 +40,7 @@ public:
 		m_participants.erase(participant);
 	}
 
-	void deliver(const chat_message& msg){
+	void deliver(const Message& msg){
 		m_recent_msgs.push_back(msg);
 		while (m_recent_msgs.size() > max_recent_msgs)
 			m_recent_msgs.pop_front();
@@ -69,7 +69,7 @@ public:
 		do_read_header();
 	}
 
-	void deliver(const chat_message& msg)
+	void deliver(const Message& msg)
 	{
 		bool write_in_progress = !m_write_msgs.empty();
 		m_write_msgs.push_back(msg);
@@ -83,7 +83,7 @@ private:
 	{
 		auto self(shared_from_this());
 		boost::asio::async_read(m_socket,
-			boost::asio::buffer(m_read_msg.data(), chat_message::header_length),
+			boost::asio::buffer(m_read_msg.data(), Message::header_length),
 			[this, self](boost::system::error_code ec, std::size_t /*length*/)
 		{
 			if (!ec && m_read_msg.decode_header()){
@@ -136,7 +136,7 @@ private:
 
 	tcp::socket m_socket;
 	chat_room& m_room;
-	chat_message m_read_msg;
+	Message m_read_msg;
 	chat_message_queue m_write_msgs;
 };
 
