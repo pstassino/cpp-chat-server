@@ -9,8 +9,8 @@
 class Message
 {
 public:
-	enum { header_length = 4 };
-	enum { max_body_length = 512 };
+	enum { header_length = 3 };
+	enum { max_body_length = 800 };
 
 	Message() : m_body_length(0) {}
 
@@ -59,7 +59,7 @@ public:
 
 	void encode_header(){
 		char header[header_length + 1] = "";
-		std::sprintf(header, "%4d", m_body_length);
+		std::sprintf(header, "%3d", m_body_length);
 		std::memcpy(m_data, header, header_length);
 	}
 

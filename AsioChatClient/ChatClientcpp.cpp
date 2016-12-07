@@ -2,6 +2,7 @@
 #include <deque>
 #include <iostream>
 #include <thread>
+#include <fstream>
 #include <boost/asio.hpp>
 #include "chat_message.h"
 
@@ -77,8 +78,13 @@ private:
 		{
 			if (!ec)
 			{
-				std::cout.write(read_msg_.body(), read_msg_.body_length());
-				std::cout << "\n";
+				SYSTEMTIME st;
+				GetSystemTime(&st);
+				char timestamp[12 + 1] = "";
+				std::sprintf(timestamp, "%02d:%02d:%02d.%03d", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+		//		std::cout.write(read_msg_.body(), read_msg_.body_length());
+		//		std::cout <<" "<< timestamp << "\n";
+				do_write_file(read_msg_, timestamp);
 				do_read_header();
 			}
 			else
@@ -110,7 +116,18 @@ private:
 		});
 	}
 
-private:
+	void do_write_file(chat_message msg, std::string timestamp)
+	{
+		std::ofstream myfile("output_data.txt", std::ofstream::out | std::ofstream::app);
+		if (myfile.is_open())
+		{
+			myfile << msg.body();
+			myfile << timestamp << '\n';
+//			myfile.close();
+		}
+		else std::cout << "Unable to open file" << '\n';
+	}
+
 	boost::asio::io_service& io_service_;
 	tcp::socket socket_;
 	chat_message read_msg_;
