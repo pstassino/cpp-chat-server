@@ -7,13 +7,13 @@
 #include <cstdlib>
 #include <cstring>
 
-class chat_message
+class Message
 {
 public:
 	enum { header_length = 3 };
 	enum { max_body_length = 800 };
 
-	chat_message() : m_body_length(0) {}
+	Message() : m_body_length(0) {}
 
 	const char* data() const {
 		return m_data;
