@@ -6,7 +6,7 @@
 #include <set>
 #include <utility>
 #include <boost/asio.hpp>
-#include "chat_message.h"
+#include "Chat_message.h"
 
 using boost::asio::ip::tcp;
 
@@ -18,6 +18,7 @@ class chat_participant
 {
 public:
 	virtual ~chat_participant() {}
+
 	virtual void deliver(const Message& msg) = 0;
 };
 
@@ -30,18 +31,22 @@ typedef std::shared_ptr<chat_participant> chat_participant_ptr;
 class chat_room
 {
 public:
-	void join(chat_participant_ptr participant){
+	void join(chat_participant_ptr participant)
+	{
 		m_participants.insert(participant);
 		for (auto msg : m_recent_msgs)
 			participant->deliver(msg);
 	}
 
-	void leave(chat_participant_ptr participant){
+	void leave(chat_participant_ptr participant)
+	{
 		m_participants.erase(participant);
 	}
 
-	void deliver(const Message& msg){
+	void deliver(const Message& msg)
+	{
 		m_recent_msgs.push_back(msg);
+
 		while (m_recent_msgs.size() > max_recent_msgs)
 			m_recent_msgs.pop_front();
 
@@ -62,9 +67,11 @@ class chat_session: public chat_participant,
 {
 public:
 	chat_session(tcp::socket socket, chat_room& room) 
-		: m_socket(std::move(socket)), m_room(room){}
+		: m_socket(std::move(socket)), 
+		  m_room(room){}
 
-	void start(){
+	void start()
+	{
 		m_room.join(shared_from_this());
 		do_read_header();
 	}
@@ -73,6 +80,7 @@ public:
 	{
 		bool write_in_progress = !m_write_msgs.empty();
 		m_write_msgs.push_back(msg);
+
 		if (!write_in_progress){
 			do_write();
 		}
@@ -82,6 +90,7 @@ private:
 	void do_read_header()
 	{
 		auto self(shared_from_this());
+
 		boost::asio::async_read(m_socket,
 			boost::asio::buffer(m_read_msg.data(), Message::header_length),
 			[this, self](boost::system::error_code ec, std::size_t /*length*/)
@@ -95,8 +104,10 @@ private:
 		});
 	}
 
-	void do_read_body(){
+	void do_read_body()
+	{
 		auto self(shared_from_this());
+
 		boost::asio::async_read(m_socket,
 			boost::asio::buffer(m_read_msg.body(), m_read_msg.body_length()),
 			[this, self](boost::system::error_code ec, std::size_t /*length*/)
@@ -114,9 +125,9 @@ private:
 	void do_write()
 	{
 		auto self(shared_from_this());
+
 		boost::asio::async_write(m_socket,
-			boost::asio::buffer(m_write_msgs.front().data(),
-				m_write_msgs.front().length()),
+			boost::asio::buffer(m_write_msgs.front().data(), m_write_msgs.front().length()),
 			[this, self](boost::system::error_code ec, std::size_t /*length*/)
 		{
 			if (!ec)
@@ -146,7 +157,8 @@ class chat_server
 {
 public:
 	chat_server(boost::asio::io_service& io_service, const tcp::endpoint& endpoint)
-		: m_acceptor(io_service, endpoint), m_socket(io_service)
+		: m_acceptor(io_service, endpoint), 
+		  m_socket(io_service)
 	{
 		do_accept();
 	}
@@ -156,11 +168,9 @@ private:
 	{
 		m_acceptor.async_accept(m_socket, [this](boost::system::error_code ec)
 		{
-			if (!ec)
-			{
+			if (!ec){
 				std::make_shared<chat_session>(std::move(m_socket), m_room)->start();
 			}
-
 			do_accept();
 		});
 	}
@@ -174,10 +184,8 @@ private:
 
 int main(int argc, char* argv[])
 {
-	try
-	{
-		if (argc < 2)
-		{
+	try{
+		if (argc < 2){
 			std::cerr << "Usage: chat_server <port> [<port> ...]\n";
 			return 1;
 		}
@@ -185,8 +193,7 @@ int main(int argc, char* argv[])
 		boost::asio::io_service io_service;
 
 		std::list<chat_server> servers;
-		for (int i = 1; i < argc; ++i)
-		{
+		for (int i = 1; i < argc; ++i){
 			tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[i]));
 			servers.emplace_back(io_service, endpoint);
 		}
@@ -197,6 +204,5 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << "Exception: " << e.what() << "\n";
 	}
-
 	return 0;
 }

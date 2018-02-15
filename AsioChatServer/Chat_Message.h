@@ -1,4 +1,5 @@
 #pragma once
+
 #ifndef CHAT_MESSAGE_H
 #define CHAT_MESSAGE_H
 
@@ -59,7 +60,7 @@ public:
 
 	void encode_header(){
 		char header[header_length + 1] = "";
-		std::sprintf(header, "%3d", m_body_length);
+		std::sprintf(header, "%03d", m_body_length);
 		std::memcpy(m_data, header, header_length);
 	}
 

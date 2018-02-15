@@ -9,6 +9,7 @@
 using boost::asio::ip::tcp;
 
 typedef std::deque<Message> chat_message_queue;
+
 std::ofstream myfile("data.txt", std::ofstream::out | std::ofstream::app);
 
 
@@ -18,7 +19,7 @@ public:
 	chat_client(boost::asio::io_service& io_service,
 		tcp::resolver::iterator endpoint_iterator)
 		: m_io_service(io_service),
-		m_socket(io_service)
+		  m_socket(io_service)
 	{
 		do_connect(endpoint_iterator);
 	}
@@ -146,7 +147,10 @@ int main(int argc, char* argv[])
 		auto endpoint_iterator = resolver.resolve({ argv[1], argv[2] });
 		chat_client c(io_service, endpoint_iterator);
 
-		std::thread t([&io_service]() { io_service.run(); });
+		std::thread t(
+			[&io_service]() { 
+			io_service.run(); 
+		});
 
 		char line[Message::max_body_length + 1];
 		while (std::cin.getline(line, Message::max_body_length + 1)) {
