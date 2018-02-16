@@ -14,26 +14,28 @@ typedef std::deque<Message> chat_message_queue;
 
 //----------------------------------------------------------------------
 
-class chat_participant
+//Abstract class to be inherited by chat_session class
+class Chat_participant
 {
 public:
-	virtual ~chat_participant() {}
+	virtual ~Chat_participant() {}
 
 	virtual void deliver(const Message& msg) = 0;
 };
 
 //----------------------------------------------------------------------
 
-typedef std::shared_ptr<chat_participant> chat_participant_ptr;
+typedef std::shared_ptr<Chat_participant> chat_participant_ptr;
 
 //----------------------------------------------------------------------
 
-class chat_room
+class Chat_room
 {
 public:
 	void join(chat_participant_ptr participant)
 	{
 		m_participants.insert(participant);
+
 		for (auto msg : m_recent_msgs)
 			participant->deliver(msg);
 	}
@@ -62,11 +64,11 @@ private:
 
 //----------------------------------------------------------------------
 
-class chat_session: public chat_participant,
-	public std::enable_shared_from_this<chat_session>
+class Chat_session: public Chat_participant,
+					public std::enable_shared_from_this<Chat_session>
 {
 public:
-	chat_session(tcp::socket socket, chat_room& room) 
+	Chat_session(tcp::socket socket, Chat_room& room) 
 		: m_socket(std::move(socket)), 
 		  m_room(room){}
 
@@ -76,6 +78,7 @@ public:
 		do_read_header();
 	}
 
+	//Overiding the virtual member deliver of chat_participant class 
 	void deliver(const Message& msg)
 	{
 		bool write_in_progress = !m_write_msgs.empty();
@@ -146,17 +149,17 @@ private:
 	}
 
 	tcp::socket m_socket;
-	chat_room& m_room;
+	Chat_room& m_room;
 	Message m_read_msg;
 	chat_message_queue m_write_msgs;
 };
 
 //----------------------------------------------------------------------
 
-class chat_server
+class Chat_server
 {
 public:
-	chat_server(boost::asio::io_service& io_service, const tcp::endpoint& endpoint)
+	Chat_server(boost::asio::io_service& io_service, const tcp::endpoint& endpoint)
 		: m_acceptor(io_service, endpoint), 
 		  m_socket(io_service)
 	{
@@ -166,10 +169,14 @@ public:
 private:
 	void do_accept()
 	{
-		m_acceptor.async_accept(m_socket, [this](boost::system::error_code ec)
+		m_acceptor.async_accept(m_socket, 
+			[this](boost::system::error_code ec)
 		{
 			if (!ec){
-				std::make_shared<chat_session>(std::move(m_socket), m_room)->start();
+				std::shared_ptr<Chat_session> chat_session_ptr =
+					std::make_shared<Chat_session>(std::move(m_socket), m_room);
+				chat_session_ptr->start();
+			//	std::make_shared<chat_session>(std::move(m_socket), m_room)->start();
 			}
 			do_accept();
 		});
@@ -177,7 +184,7 @@ private:
 
 	tcp::acceptor m_acceptor;
 	tcp::socket m_socket;
-	chat_room m_room;
+	Chat_room m_room;
 };
 
 //----------------------------------------------------------------------
@@ -185,19 +192,27 @@ private:
 int main(int argc, char* argv[])
 {
 	try{
-		if (argc < 2){
-			std::cerr << "Usage: chat_server <port> [<port> ...]\n";
+		if (argc != 2 ){
+			std::cerr << "Usage: chat_server <port>\n";
 			return 1;
 		}
 
 		boost::asio::io_service io_service;
 
+		tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[0]));
+		Chat_server(io_service, endpoint);
+/*
+		if (argc < 2) {
+			std::cerr << "Usage: chat_server <port> [<port> ...]\n";
+			return 1;
+		}
 		std::list<chat_server> servers;
+
 		for (int i = 1; i < argc; ++i){
 			tcp::endpoint endpoint(tcp::v4(), std::atoi(argv[i]));
 			servers.emplace_back(io_service, endpoint);
 		}
-
+*/
 		io_service.run();
 	}
 	catch (std::exception& e)

@@ -13,10 +13,10 @@ typedef std::deque<Message> chat_message_queue;
 std::ofstream myfile("data.txt", std::ofstream::out | std::ofstream::app);
 
 
-class chat_client
+class Chat_client
 {
 public:
-	chat_client(boost::asio::io_service& io_service,
+	Chat_client(boost::asio::io_service& io_service,
 		tcp::resolver::iterator endpoint_iterator)
 		: m_io_service(io_service),
 		  m_socket(io_service)
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
 
 		tcp::resolver resolver(io_service);
 		auto endpoint_iterator = resolver.resolve({ argv[1], argv[2] });
-		chat_client c(io_service, endpoint_iterator);
+		Chat_client c(io_service, endpoint_iterator);
 
 		std::thread t(
 			[&io_service]() { 
